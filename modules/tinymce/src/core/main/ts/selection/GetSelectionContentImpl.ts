@@ -31,8 +31,14 @@ const getInnerText = (bin: HTMLElement) => {
   return Env.browser.isIE() ? trimLeadingCollapsibleText(text) : text;
 };
 
+const getInvisibleContainerType = (editor: Editor, rng: Range) => {
+  const contextBlock = editor.dom.getParent(rng.commonAncestorContainer, editor.dom.isBlock);
+
+  return contextBlock ? contextBlock.nodeName : 'div';
+};
+
 const getTextContent = (editor: Editor): string => Optional.from(editor.selection.getRng()).map((rng) => {
-  const bin = editor.dom.add(editor.getBody(), 'div', {
+  const bin = editor.dom.add(editor.getBody(), getInvisibleContainerType(editor, rng), {
     'data-mce-bogus': 'all',
     'style': 'overflow: hidden; opacity: 0;'
   }, rng.cloneContents());
