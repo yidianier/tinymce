@@ -11,6 +11,8 @@ import { SelectorFilter, SugarElement, Traverse } from '@ephox/sugar';
 import DOMUtils from 'tinymce/core/api/dom/DOMUtils';
 import DomTreeWalker from 'tinymce/core/api/dom/TreeWalker';
 
+type Walker = (shallow?: boolean) => Node;
+
 interface WalkerCallbacks {
   boundary: (node: Node) => boolean;
   cef: (node: Node) => boolean;
@@ -21,8 +23,6 @@ interface CollectCallbacks {
   cef: (node: Node) => TextSection[];
   text: (node: Text, section: TextSection) => void;
 }
-
-type Walker = (shallow?: boolean) => Node;
 
 interface TextSection {
   sOffset: number;
@@ -125,6 +125,7 @@ const collect = (dom: DOMUtils, rootNode: Node, startNode: Node, endNode?: Node,
       sections.push(current);
       current = nuSection();
     }
+
     return false;
   };
 
@@ -138,6 +139,7 @@ const collect = (dom: DOMUtils, rootNode: Node, startNode: Node, endNode?: Node,
       if (callbacks) {
         sections.push(...callbacks.cef(node));
       }
+
       return false;
     },
     text: (next) => {
@@ -152,6 +154,7 @@ const collect = (dom: DOMUtils, rootNode: Node, startNode: Node, endNode?: Node,
   if (endNode) {
     collectTextToBoundary(dom, current, endNode, rootNode, true);
   }
+
   finishSection();
 
   return sections;
@@ -165,10 +168,15 @@ const collectRangeSections = (dom: DOMUtils, rng: Range): TextSection[] => {
 
   const collectCallbacks = {
     text: (node, section) => {
+      const isEnd = node === endNode;
+      const isStart = node === startNode;
+
       // Set the start/end offset of the section
-      if (node === endNode) {
+      if (isEnd) {
         section.fOffset += node.length - end.offset;
-      } else if (node === startNode) {
+      }
+
+      if (isStart) {
         section.sOffset += start.offset;
       }
     },
@@ -177,6 +185,7 @@ const collectRangeSections = (dom: DOMUtils, rng: Range): TextSection[] => {
       // TODO: See if we can improve this to avoid the sort overhead
       const sections = Arr.bind(SelectorFilter.descendants(SugarElement.fromDom(node), '*[contenteditable=true]'), (e) => {
         const ceTrueNode = e.dom;
+
         return collect(dom, ceTrueNode, ceTrueNode);
       });
       return Arr.sort(sections, (a, b) =>
@@ -189,12 +198,18 @@ const collectRangeSections = (dom: DOMUtils, rng: Range): TextSection[] => {
 
 const getSectionPart = (selection: TextSection): string => {
   const parts = Arr.map(selection.elements, (element, index): string => {
-    if (index === 0) {
-      return element.dom.textContent.substring(selection.sOffset);
-    } else if (index === (selection.elements.length - 1)) {
-      return element.dom.textContent.substring(0, selection.fOffset);
+    const isFirst = index === 0;
+    const isLast = index === (selection.elements.length - 1);
+    const content = element.dom.textContent;
+
+    if (isFirst && isLast) {
+      return content.substring(selection.sOffset, content.length - selection.fOffset);
+    } else if (isFirst) {
+      return content.substring(selection.sOffset);
+    } else if (isLast) {
+      return content.substring(0, content.length - selection.fOffset);
     } else {
-      return element.dom.textContent;
+      return content;
     }
   });
 
@@ -207,13 +222,11 @@ const fromRange = (dom: DOMUtils, range: Range): string => {
   } else {
     const sections = collectRangeSections(dom, range);
 
-    let text = '';
+    const selectionsText = Arr.map(sections, (textsection) =>
+      getSectionPart(textsection)
+    );
 
-    Arr.each(sections, (textsection) => {
-      text += getSectionPart(textsection);
-    });
-
-    return text;
+    return selectionsText.join('\n');
   }
 };
 

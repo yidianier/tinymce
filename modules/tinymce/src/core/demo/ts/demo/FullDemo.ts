@@ -1,5 +1,4 @@
 /* eslint-disable no-console */
-import { Merger } from '@ephox/katamari';
 import { SugarElement } from '@ephox/sugar';
 
 declare let tinymce: any;
@@ -156,5 +155,13 @@ export default function () {
   };
 
   tinymce.init(settings);
-  tinymce.init(Merger.deepMerge(settings, { inline: true, selector: 'div.tinymce' }));
+  document.getElementById('setContent').addEventListener('click', (e) => {
+    e.preventDefault();
+    tinymce.activeEditor.setContent('<p>content<em> Leading space</em></p><p>Fish1 Fish2 fish3</p><div editablecontent="false">I AM NOT EDITABLE</div><pre>listButtons = listButtons.filter(btnSetting => {\n            return !!btnSetting.locationGroup;\n        });</pre>');
+  });
+  document.getElementById('getContent').addEventListener('click', (e) => {
+    e.preventDefault();
+    console.log(tinymce.activeEditor.selection.getContent({ format: 'text' }));
+  });
+
 }
