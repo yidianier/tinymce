@@ -273,11 +273,16 @@ const extractDataFromRowElement = (editor: Editor, elm: HTMLTableRowElement, has
   };
 };
 
+
+// dom.getAttrib gives us '' if the attr doesn't exist, we can get null from the commands
+export type CellScopes = 'col' | 'row' | 'colgroup' | 'rowgroup' | '' | null;
+export type CellTypes = 'td' | 'th';
+
 export interface CellData {
   width: string;
   height: string;
-  scope: string;
-  celltype: string;
+  scope: CellScopes;
+  celltype: CellTypes;
   class: string;
   halign: string;
   valign: string;
@@ -296,8 +301,8 @@ const extractDataFromCellElement = (editor: Editor, cell: HTMLTableDataCellEleme
   return {
     width: getStyle(colElm, 'width'),
     height: getStyle(cell, 'height'),
-    scope: dom.getAttrib(cell, 'scope'),
-    celltype: Util.getNodeName(cell),
+    scope: dom.getAttrib(cell, 'scope') as CellScopes,
+    celltype: Util.getNodeName(cell) as CellTypes,
     class: dom.getAttrib(cell, 'class', ''),
     halign: getHAlignment(editor, cell),
     valign: getVAlignment(editor, cell),

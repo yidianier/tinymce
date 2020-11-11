@@ -11,6 +11,7 @@ import { TableLookup, Warehouse } from '@ephox/snooker';
 import { Compare, SugarElement } from '@ephox/sugar';
 import Editor from 'tinymce/core/api/Editor';
 import { Dialog } from 'tinymce/core/api/ui/Ui';
+import { switchCellsTypes } from 'tinymce/plugins/table/core/TableSections';
 import * as Styles from '../actions/Styles';
 import { hasAdvancedCellTab } from '../api/Settings';
 import * as Util from '../core/Util';
@@ -44,7 +45,6 @@ const getSelectedCells = (cells: SugarElement<HTMLTableCellElement>[]): Optional
   });
 
 const updateSimpleProps = (modifier: DomModifier, colModifier: DomModifier, data: CellData) => {
-  modifier.setAttrib('scope', data.scope);
   modifier.setAttrib('class', data.class);
   modifier.setStyle('height', Util.addPxSuffix(data.height));
   colModifier.setStyle('width', Util.addPxSuffix(data.width));
@@ -78,7 +78,7 @@ const applyCellData = (editor: Editor, cells: SugarElement<HTMLTableCellElement>
       Arr.each(selectedCells, (item) => {
         // Switch cell type if applicable
         const cellElement = item.element;
-        const cellElm = data.celltype && Util.getNodeName(cellElement) !== data.celltype ? (dom.rename(cellElement, data.celltype) as HTMLTableCellElement) : cellElement;
+        const cellElm = data.celltype ? switchCellsTypes(dom, [ cellElement ], data.celltype, data.scope, isSingleCell)[0] : cellElement;
         const modifier = isSingleCell ? DomModifier.normal(editor, cellElm) : DomModifier.ifTruthy(editor, cellElm);
         const colModifier = item.column.map((col) =>
           isSingleCell ? DomModifier.normal(editor, col) : DomModifier.ifTruthy(editor, col)

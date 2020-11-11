@@ -270,13 +270,6 @@ const changeFileInput = (helpers: Helpers, info: ImageDialogInfo, state: ImageDi
     }, (file) => {
       const blobUri: string = URL.createObjectURL(file);
 
-      const uploader = Uploader({
-        url: info.url,
-        basePath: info.basePath,
-        credentials: info.credentials,
-        handler: info.handler
-      });
-
       const finalize = () => {
         api.unblock();
         URL.revokeObjectURL(blobUri);
@@ -291,7 +284,7 @@ const changeFileInput = (helpers: Helpers, info: ImageDialogInfo, state: ImageDi
       Utils.blobToDataUri(file).then((dataUrl) => {
         const blobInfo = helpers.createBlobCache(file, blobUri, dataUrl);
         if (info.automaticUploads) {
-          uploader.upload(blobInfo).then((url: string) => {
+          helpers.uploadImage(blobInfo).then((url: string) => {
             updateSrcAndSwitchTab(url);
             finalize();
           }).catch((err) => {
@@ -415,6 +408,8 @@ const parseStyle = (editor: Editor) => (cssText: string): StyleMap => editor.dom
 
 const serializeStyle = (editor: Editor) => (stylesArg: StyleMap, name?: string): string => editor.dom.serializeStyle(stylesArg, name);
 
+const uploadImage = (editor: Editor) => (blobInfo: BlobInfo) => editor.editorUpload.uploadImage(blobInfo, false);
+
 export const Dialog = (editor: Editor) => {
   const helpers: Helpers = {
     onSubmit: submitHandler(editor),
@@ -424,7 +419,8 @@ export const Dialog = (editor: Editor) => {
     alertErr: alertErr(editor),
     normalizeCss: normalizeCss(editor),
     parseStyle: parseStyle(editor),
-    serializeStyle: serializeStyle(editor)
+    serializeStyle: serializeStyle(editor),
+    uploadImage: uploadImage(editor)
   };
   const open = () => {
     collect(editor)
