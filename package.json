@@ -32,9 +32,8 @@
     "test-one": "yarn tsc && yarn bedrock-auto -b chrome-headless -f"
   },
   "lint-prepush": {
-    "base": "develop",
     "tasks": {
-      "*.js": [
+      "*.{js,ts}": [
         "eslint"
       ]
     }

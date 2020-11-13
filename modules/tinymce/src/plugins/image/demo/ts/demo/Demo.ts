@@ -11,11 +11,11 @@ tinymce.init({
   image_title: true,
   image_list: [
     { text: 'Google', value: 'https://www.google.com/google.jpg' }
-  ],
+  ]
   image_class_list: [
     { title: 'None', value: '' },
-    { title: 'Class1', value: 'class1' }
-    { title: 'Class2', value: 'class2' }
+    { title: 'Class1', value: 'class1' },
+    { title: 'Class2', value: 'class2' },
   ],
   images_upload_url: 'postAcceptor.php',
   file_picker_callback(callback, _value, _meta) {
