@@ -34,7 +34,7 @@
   "lint-prepush": {
     "tasks": {
       "*.{js,ts}": [
-        "eslint"
+        "eslint --fix"
       ]
     }
   },
