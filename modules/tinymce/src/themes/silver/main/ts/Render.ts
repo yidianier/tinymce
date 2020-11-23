@@ -5,13 +5,14 @@
  * For commercial licenses see https://www.tiny.cloud/
  */
 
-import { AlloyComponent, AlloyEvents, AlloySpec, Behaviour, Gui, GuiFactory, Keying, Memento, Positioning, SimpleSpec, SystemEvents, VerticalDir } from '@ephox/alloy';
-import { Arr, Obj, Optional, Result } from '@ephox/katamari';
+import { AlloyComponent, AlloyEvents, AlloySpec, Behaviour, Disabling, Gui, GuiFactory, Keying, Memento, Positioning, SimpleSpec, SystemEvents, VerticalDir } from '@ephox/alloy';
+import { Arr, Merger, Obj, Optional, Result } from '@ephox/katamari';
 import { PlatformDetection } from '@ephox/sand';
-import { Css } from '@ephox/sugar';
+import { Css, SugarNode, SugarShadowDom } from '@ephox/sugar';
 import Editor from 'tinymce/core/api/Editor';
 import I18n from 'tinymce/core/api/util/I18n';
 import { EditorUiApi } from 'tinymce/core/api/ui/Ui';
+import * as ReadOnly from './ReadOnly';
 import * as Settings from './api/Settings';
 import * as Backstage from './backstage/Backstage';
 import * as ContextToolbar from './ContextToolbar';
@@ -89,6 +90,9 @@ const setup = (editor: Editor): RenderInfo => {
   const touchPlatformClass = 'tox-platform-touch';
   const deviceClasses = isTouch ? [ touchPlatformClass ] : [];
   const isToolbarBottom = Settings.isToolbarLocationBottom(editor);
+  const container = Settings.getUiContainer(editor);
+
+  const toolbarIsInRoot = SugarNode.isTag('body')(container) || SugarShadowDom.isShadowRoot(container);
 
   const dirAttributes = I18n.isRtl() ? {
     attributes: {
@@ -112,24 +116,33 @@ const setup = (editor: Editor): RenderInfo => {
     Css.set(uiMothership.element, 'width', document.body.clientWidth + 'px');
   };
 
-  const sink = GuiFactory.build({
-    dom: {
-      tag: 'div',
-      classes: [ 'tox', 'tox-silver-sink', 'tox-tinymce-aux' ].concat(platformClasses).concat(deviceClasses),
-      styles: {
-        width: document.body.clientWidth + 'px'
+  const makeSinkDefinition = (): AlloySpec => {
+    const sinkSpec = {
+      dom: {
+        tag: 'div',
+        classes: [ 'tox', 'tox-silver-sink', 'tox-tinymce-aux' ].concat(platformClasses).concat(deviceClasses),
+        ...dirAttributes
       },
-      ...dirAttributes
-    },
-    behaviours: Behaviour.derive([
-      Positioning.config({
-        useFixed: () => isHeaderDocked()
-      })
-    ]),
-    events: AlloyEvents.derive([
-      AlloyEvents.run(SystemEvents.windowResize(), resizeUiMothership)
-    ])
-  });
+      behaviours: Behaviour.derive([
+        Positioning.config({
+          useFixed: () => isHeaderDocked()
+        })
+      ])
+    };
+
+    const reactiveWidthSpec = {
+      dom: {
+        styles: { width: document.body.clientWidth + 'px' }
+      },
+      events: AlloyEvents.derive([
+        AlloyEvents.run(SystemEvents.windowResize(), resizeUiMothership)
+      ])
+    };
+
+    return Merger.deepMerge(sinkSpec, toolbarIsInRoot ? reactiveWidthSpec : {});
+  };
+
+  const sink = GuiFactory.build(makeSinkDefinition());
 
   const lazySink = () => Result.value<AlloyComponent, Error>(sink);
 
@@ -310,6 +323,10 @@ const setup = (editor: Editor): RenderInfo => {
       },
       components: containerComponents,
       behaviours: Behaviour.derive([
+        ReadOnly.receivingConfig(),
+        Disabling.config({
+          disableClass: 'tox-tinymce--disabled'
+        }),
         Keying.config({
           mode: 'cyclic',
           selector: '.tox-menubar, .tox-toolbar, .tox-toolbar__primary, .tox-toolbar__overflow--open, .tox-sidebar__overflow--open, .tox-statusbar__path, .tox-statusbar__wordcount, .tox-statusbar__branding a'
